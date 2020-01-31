@@ -216,8 +216,9 @@ func ParseStruct(src []byte, structName string, copyDocs bool, copyTypeDocs bool
 }
 
 func Make(files []string, structType, comment, pkgName, ifaceName, ifaceComment string, copyDocs, copyTypeDoc, sortAlphabetically bool) ([]byte, error) {
-	allMethods := []string{}
-	allImports := []string{}
+	allMethods := []Method{}
+	allMethodStrs := []string{}
+	allImportStrs := []string{}
 	mset := make(map[string]struct{})
 	iset := make(map[string]struct{})
 	var typeDoc string
@@ -227,19 +228,29 @@ func Make(files []string, structType, comment, pkgName, ifaceName, ifaceComment 
 			return nil, err
 		}
 		methods, imports, parsedTypeDoc := ParseStruct(src, structType, copyDocs, copyTypeDoc, pkgName)
-		for _, m := range methods {
-			if _, ok := mset[m.Code]; !ok {
-				allMethods = append(allMethods, m.Lines()...)
-				mset[m.Code] = struct{}{}
-			}
-		}
+		allMethods = append(allMethods, methods...)
+
 		for _, i := range imports {
 			if _, ok := iset[i]; !ok {
 				iset[i] = struct{}{}
 			}
 		}
+
 		if typeDoc == "" {
 			typeDoc = parsedTypeDoc
+		}
+	}
+
+	if sortAlphabetically {
+		sort.Slice(allMethods, func(i, j int) bool {
+			return allMethods[i].Code < allMethods[j].Code
+		})
+	}
+
+	for _, m := range allMethods {
+		if _, ok := mset[m.Code]; !ok {
+			allMethodStrs = append(allMethodStrs, m.Lines()...)
+			mset[m.Code] = struct{}{}
 		}
 	}
 
@@ -251,18 +262,14 @@ func Make(files []string, structType, comment, pkgName, ifaceName, ifaceComment 
 		}
 	}
 	for importStr := range iset {
-		allImports = append(allImports, importStr)
-	}
-
-	if sortAlphabetically {
-		sort.Strings(allMethods)
+		allImportStrs = append(allImportStrs, importStr)
 	}
 
 	if typeDoc != "" {
 		ifaceComment = fmt.Sprintf("%s\n%s", ifaceComment, typeDoc)
 	}
 
-	result, err := MakeInterface(comment, pkgName, ifaceName, ifaceComment, allMethods, allImports)
+	result, err := MakeInterface(comment, pkgName, ifaceName, ifaceComment, allMethodStrs, allImportStrs)
 	if err != nil {
 		return nil, err
 	}
