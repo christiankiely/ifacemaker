@@ -8,6 +8,7 @@ import (
 	"go/token"
 	"io/ioutil"
 	"log"
+	"sort"
 	"strings"
 
 	"golang.org/x/tools/imports"
@@ -214,7 +215,7 @@ func ParseStruct(src []byte, structName string, copyDocs bool, copyTypeDocs bool
 	return
 }
 
-func Make(files []string, structType, comment, pkgName, ifaceName, ifaceComment string, copyDocs, copyTypeDoc bool) ([]byte, error) {
+func Make(files []string, structType, comment, pkgName, ifaceName, ifaceComment string, copyDocs, copyTypeDoc, sortAlphabetically bool) ([]byte, error) {
 	allMethods := []string{}
 	allImports := []string{}
 	mset := make(map[string]struct{})
@@ -241,6 +242,10 @@ func Make(files []string, structType, comment, pkgName, ifaceName, ifaceComment 
 		if typeDoc == "" {
 			typeDoc = parsedTypeDoc
 		}
+	}
+
+	if sortAlphabetically {
+		sort.Strings(allMethods)
 	}
 
 	if typeDoc != "" {
