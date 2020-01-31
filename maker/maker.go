@@ -235,13 +235,23 @@ func Make(files []string, structType, comment, pkgName, ifaceName, ifaceComment 
 		}
 		for _, i := range imports {
 			if _, ok := iset[i]; !ok {
-				allImports = append(allImports, i)
 				iset[i] = struct{}{}
 			}
 		}
 		if typeDoc == "" {
 			typeDoc = parsedTypeDoc
 		}
+	}
+
+	for importStr := range iset {
+		// If this is a named import, check that we don't otherwise include it twice.
+		parts := strings.Split(importStr, " ")
+		if len(parts) > 1 {
+			delete(iset, parts[1])
+		}
+	}
+	for importStr := range iset {
+		allImports = append(allImports, importStr)
 	}
 
 	if sortAlphabetically {
